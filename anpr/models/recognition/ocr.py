@@ -6,7 +6,7 @@ import os
 
 
 class Ocr():
-    def __init__(self) -> None:
+    def __init__(self, device) -> None:
         self.chars = [
             'blank', 
             '0', '1', 
@@ -26,7 +26,14 @@ class Ocr():
         module_dir = os.path.dirname(__file__)
         model_path = os.path.join(module_dir, 'weights', 'svtr.onnx')
 
-        EP_list = ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
+        # EP_list = ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
+        if device == 'gpu':
+            EP_list = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+        elif device == 'cpu':
+            EP_list = ['CPUExecutionProvider']
+        elif device == 'trt':
+            EP_list = ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
+            
         self.ort_session = onnxruntime.InferenceSession(model_path, providers=EP_list)
 
         model_inputs = self.ort_session.get_inputs()
@@ -124,7 +131,14 @@ if __name__ == '__main__':
 
 
     ocr = Ocr()
-    image = cv2.imread('/home/bush/project/anpr/tmp.jpg')
+    image = cv2.imread('/home/ubuntu/proj/tmp.jpg')
     result = ocr.recognize(image)
-
     pprint.pprint(result)
+    count = 0
+    total = 0
+    for i in range(1000):
+        result = ocr.recognize(image)
+        count += 1
+        total += float(result['speed']['total'])
+    
+    print(f'average speed, 1000 runs: {total / count} ms')

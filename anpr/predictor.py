@@ -1,9 +1,9 @@
 from .models import Yolo, Ocr
 
 class Anpr():
-    def __init__(self) -> None:
-        self.yolo = Yolo()
-        self.ocr = Ocr()
+    def __init__(self, device='cpu') -> None:
+        self.yolo = Yolo(device)
+        self.ocr = Ocr(device)
     
     def __call__(self, image):
         result_yolo = self.yolo.detect(image)

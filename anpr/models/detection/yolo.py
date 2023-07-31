@@ -6,7 +6,7 @@ import os
 
 
 class Yolo():
-    def __init__(self) -> None:
+    def __init__(self, device) -> None:
         # Тут можно параметры сессии добавить
         # opt_session = onnxruntime.SessionOptions()
         # opt_session.enable_mem_pattern = False
@@ -15,9 +15,15 @@ class Yolo():
         self.conf_thresold = 0.6
 
         module_dir = os.path.dirname(__file__)
-        model_path = os.path.join(module_dir, 'weights', 'yolo_sim.onnx')
+        model_path = os.path.join(module_dir, 'weights', 'yolo_half_sim.onnx')
 
-        EP_list = ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
+        # EP_list = ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
+        if device == 'gpu':
+            EP_list = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+        elif device == 'cpu':
+            EP_list = ['CPUExecutionProvider']
+        elif device == 'trt':
+            EP_list = ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
 
         self.ort_session = onnxruntime.InferenceSession(model_path, providers=EP_list)
 
@@ -172,9 +178,17 @@ if __name__ == '__main__':
     import pprint
 
 
-    y = Yolo()
-    image = cv2.imread('/home/bush/project/anpr/test/T008AT197.jpg')
+    y = Yolo(device='gpu')
+    image = cv2.imread('/home/ubuntu/proj/T427PA163.jpg')
     result = y.detect(image)
     pprint.pprint(result)
+    count = 0
+    total = 0
+    for i in range(1000):
+        result = y.detect(image)
+        count += 1
+        total += float(result['speed']['total'])
+    
+    print(f'average speed, 1000 runs: {total / count} ms')
     box = result['box']
     cv2.imwrite('tmp.jpg', image[box[1]:box[3],box[0]:box[2]])
