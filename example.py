@@ -6,7 +6,7 @@ if __name__ == '__main__':
     import cv2
 
 
-    it = anpr.Anpr('gpu')
+    it = anpr.Anpr('gpu') # also 'cpu' and 'trt' is available (trt not tested)
 
     # warmup
     image = cv2.imread('/home/ubuntu/proj/H560PA78.jpg')
