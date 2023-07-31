@@ -15,9 +15,9 @@ class Yolo():
         self.conf_thresold = 0.6
 
         module_dir = os.path.dirname(__file__)
-        model_path = os.path.join(module_dir, 'weights', 'yolo.onnx')
+        model_path = os.path.join(module_dir, 'weights', 'yolo_sim.onnx')
 
-        EP_list = ['CPUExecutionProvider']
+        EP_list = ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
 
         self.ort_session = onnxruntime.InferenceSession(model_path, providers=EP_list)
 

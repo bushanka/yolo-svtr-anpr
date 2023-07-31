@@ -26,7 +26,7 @@ class Ocr():
         module_dir = os.path.dirname(__file__)
         model_path = os.path.join(module_dir, 'weights', 'svtr.onnx')
 
-        EP_list = ['CPUExecutionProvider']
+        EP_list = ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
         self.ort_session = onnxruntime.InferenceSession(model_path, providers=EP_list)
 
         model_inputs = self.ort_session.get_inputs()
