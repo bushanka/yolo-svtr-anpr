@@ -1,0 +1,34 @@
+version: "3"
+
+services:
+
+  python_fastapi:
+    image: anpr-api
+    command:
+      [
+          "gunicorn", "-w", "2", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8000"
+      ]
+    environment:
+      APP_BROKER_URI: "amqp://rabbitmq"
+      MAX_TRIES: "20"
+      DELAY: "0.1"
+    ports:
+      - 8000:8000
+
+  celery_worker:
+    image: anpr-api
+    command:
+      [
+          "celery", "-A", "app.tasks.recognition_task", "worker", "-Q", "recognitiontask_queue",
+          "--loglevel=DEBUG", "--hostname=anpr", "--autoscale=2,1"
+      ]
+    environment:
+      APP_BROKER_URI: "amqp://rabbitmq"
+      RUNTYPE: "cpu"
+    depends_on:
+      - rabbitmq
+    
+  rabbitmq:
+    image: rabbitmq:3.12.4
+    ports:
+      - 5672:5672
