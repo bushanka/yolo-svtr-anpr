@@ -64,11 +64,8 @@ async def celery_async_wrapper(
     '/recognize',
     responses={
         status.HTTP_200_OK: {
-            "description": "Recognition successful"
+            "description": "Returns recognition result or task id if time out"
         },
-        status.HTTP_201_CREATED: {
-            "description": "Recognition is still pending"
-        }
     }
 )
 async def recognize(image_bytes: bytes = File()) -> Union[RecognitionOutput, RecognitionTask]:
