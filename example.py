@@ -6,10 +6,10 @@ if __name__ == '__main__':
     import cv2
 
 
-    it = anpr.Anpr('gpu') # also 'cpu' and 'trt' is available (trt not tested)
+    it = anpr.Anpr('cpu') # also 'cpu' and 'trt' is available (trt not tested)
 
     # warmup
-    image = cv2.imread('/home/ubuntu/proj/H560PA78.jpg')
+    image = cv2.imread('/home/bush/project/anpr/test/E598BH126.jpg')
     pprint.pprint(it(image))
 
     count = 0

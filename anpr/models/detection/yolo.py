@@ -119,8 +119,12 @@ class Yolo():
         predictions = predictions[scores > self.conf_thresold, :]
         scores = scores[scores > self.conf_thresold] 
 
-        # Get max probability element
-        max_index_score = np.where(scores == max(scores))
+        try:
+            # Get max probability element
+            max_index_score = np.where(scores == max(scores))
+        except ValueError:
+            # no detection
+            return None, None
 
         # Get bounding boxes for each object
         boxes = predictions[:, :4]
@@ -163,8 +167,8 @@ class Yolo():
         took_postprocess  = (time.time() - start_postprocess) * 1000
 
         return {
-            'box': self.rescale_prediction(self._xywh2xyxy(result_box[0]), dwdh, ratio),
-            'prob': result_score[0],
+            'box': self.rescale_prediction(self._xywh2xyxy(result_box[0]), dwdh, ratio) if result_score else None,
+            'prob': result_score[0] if result_score else 0,
             'speed': {
                 'preprocess': f'{took_preprocess:.3f}',
                 'detecting': f'{took_detecting:.3f}',

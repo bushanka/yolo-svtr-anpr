@@ -10,7 +10,10 @@ class Anpr():
 
         box = result_yolo['box']
 
-        result_ocr = self.ocr.recognize(image[box[1]:box[3],box[0]:box[2]])
+        if box is not None:
+            result_ocr = self.ocr.recognize(image[box[1]:box[3],box[0]:box[2]])
+        else:
+            result_ocr = None
 
         return {
             'detection': result_yolo,
