@@ -2,10 +2,10 @@
 
 ## Build image
 ```bash
-docker build -t "anpr-api:latest"
+docker build . -t "anpr-api:latest"
 ```
 
 ## run compose
 ```bash
-docker compose up -d
+docker-compose -f docker-compose.yaml up -d
 ```
