@@ -1,3 +1,6 @@
 alembic*
 *venv
+.venv
+test
+old
 README.md

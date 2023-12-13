@@ -3,62 +3,19 @@ from fastapi import(
     status,
     File
 )
-
-from celery.result import AsyncResult
-from celery import Celery
-
-from app.models.recognize import RecognitionOutput, RecognitionTask
-
-from pydantic import BaseModel
-from typing import Union, Tuple
-from dotenv import load_dotenv
+import numpy as np
 import os
-import asyncio
+import cv2
+from app import anpr
+from app.models.recognize import RecognitionOutput
 
-
-load_dotenv()
-MAX_TRIES = int(os.getenv('MAX_TRIES'))
-DELAY = float(os.getenv('DELAY'))
 
 router = APIRouter(
     prefix="/recognition",
     tags=["recognition"],
 )
-celery_app = Celery('app.tasks.recognition_task', backend='rpc://', broker=os.getenv('APP_BROKER_URI'))
-
-
-
-async def celery_async_wrapper(
-        app: Celery, 
-        task_name: str, 
-        task_args: Tuple, 
-        queue: str
-) -> Union[RecognitionOutput, int]:
-    delay = DELAY
-    max_tries = MAX_TRIES
-
-    task_id = app.send_task(task_name, [*task_args], queue=queue)
-    task = AsyncResult(task_id)
-
-    while not task.ready() and max_tries > 0:
-        await asyncio.sleep(delay)
-        # Через 5 итераций выходит на 2 секунды
-        # Total wait: 3.1 sec после 5 итераций, далее по 2 сек делей
-        # Максимум будет 33 секунды - потом Time out 
-        delay = min(delay * 2, 2)  # exponential backoff, max 2 seconds
-        max_tries -= 1
-
-    if max_tries <= 0:
-        return task_id
-
-    result = task.get()
-
-    return RecognitionOutput(
-        plate=result['plate'],
-        predict_time=result['predict_time'],
-        confidence=result['confidence']
-    )
-
+RUNTYPE = os.getenv('RUNTYPE') if os.getenv('RUNTYPE') else 'cpu'
+model = anpr.Anpr(RUNTYPE)
 
 @router.post(
     '/recognize',
@@ -68,37 +25,43 @@ async def celery_async_wrapper(
         },
     }
 )
-async def recognize(image_bytes: bytes = File()) -> Union[RecognitionOutput, RecognitionTask]:
-    result = await celery_async_wrapper(
-        celery_app, 
-        'recognize', 
-        task_args=(image_bytes,), 
-        queue='recognitiontask_queue'
-    )
-    if isinstance(result, RecognitionOutput):
-        return result
-    else:
-        return RecognitionTask(task_id=str(result))
+def recognize(image_bytes: bytes = File()) -> RecognitionOutput:
+    nparr = np.fromstring(image_bytes, np.uint8)
+    print(nparr)
+    print(len(nparr))
+    try:
+        img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    except cv2.error as ex_cv2:
+        print(f"Error in decoding image: {ex_cv2}")
+        return RecognitionOutput(
+            plate="no detection, error in decoding image (maybe empty image sended)",
+            confidence=-1,
+            predict_time=0.0
+        )
 
+    try:
+        result = model(img_np)
+    except AttributeError as ex_attrerror:
+        print(ex_attrerror)
+        return RecognitionOutput(
+            plate=f"no detection, error in model inference (maybe image shape is 0) recieved image len: {len(nparr)}",
+            confidence=-1,
+            predict_time=0.0
+        )
 
-@router.get(
-        '/result/{task_id}',
-        responses={
-            status.HTTP_200_OK: {
-                "description": "Returns status of recognition task"
-            }
-        }
-)
-async def fetch_result(task_id: int) -> Union[RecognitionTask, RecognitionOutput]:
-    task = AsyncResult(task_id)
+    if not result['recognition']:
+        return RecognitionOutput(
+            plate='no detection',
+            confidence=-1,
+            predict_time=result['detection']['speed']['total']
+        )
 
-    if not task.ready():
-        return RecognitionTask(task_id=str(task_id))
-    
-    result = task.get()
+    plate_num = result['recognition']['text']
+    total_prob = result['detection']['prob'] * result['recognition']['prob']
+    total_time = float(result['detection']['speed']['total']) + float(result['recognition']['speed']['total'])
 
     return RecognitionOutput(
-        plate=result['plate'],
-        predict_time=result['predict_time'],
-        confidence=result['confidence']
+        plate=plate_num,
+        confidence=total_prob,
+        predict_time=total_time
     )
