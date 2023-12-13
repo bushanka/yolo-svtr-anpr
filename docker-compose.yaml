@@ -1,11 +1,14 @@
-version: "3"
+version: "3.9"
 
 services:
+
   python_fastapi:
-    image: anpr-api:1.0.0
+    container_name: tyzzo-api 
+    image: anpr:v1.1.5
+    restart: always
     command:
       [
-          "gunicorn", "-w", "5", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8000", "--log-level=debug"
+          "gunicorn", "-w", "6", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8000", "--log-level=debug"
       ]
     environment:
       RUNTYPE: "cpu"
