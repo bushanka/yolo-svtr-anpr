@@ -1,3 +1,4 @@
+import time
 from fastapi import(
     APIRouter, 
     status,
@@ -6,10 +7,15 @@ from fastapi import(
 import numpy as np
 import os
 import cv2
+import logging
+import sys
 from app import anpr
 from app.models.recognize import RecognitionOutput, Plate
 
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler(sys.stdout))
 
 router = APIRouter(
     prefix="/recognition",
@@ -24,7 +30,7 @@ model = anpr.Anpr(RUNTYPE)
     '/recognize',
     responses={
         status.HTTP_200_OK: {
-            "description": "Returns recognition result or task id if time out"
+            "description": "Returns recognition result."
         },
     }
 )
@@ -33,8 +39,9 @@ def recognize(images: bytes = File()) -> RecognitionOutput:
     try:
         img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     except cv2.error as ex_cv2:
-        print(f"Error in decoding image: {ex_cv2}")
+        logger.info(f"Error in decoding image: {ex_cv2}")
         return RecognitionOutput(
+            status='error',
             results=[
                 Plate(
                     plate="no detection, error in decoding image (maybe empty image sended)"
@@ -47,8 +54,9 @@ def recognize(images: bytes = File()) -> RecognitionOutput:
     try:
         result = model(img_np)
     except AttributeError as ex_attrerror:
-        print(ex_attrerror)
+        logger.info(ex_attrerror)
         return RecognitionOutput(
+            status='error',
             results=[
                 Plate(
                     plate=f"no detection, error in model inference (maybe image shape is 0) recieved image len: {len(nparr)}"
@@ -59,6 +67,9 @@ def recognize(images: bytes = File()) -> RecognitionOutput:
         )
 
     if not result['recognition']:
+        logger.info("no detection")
+        ts = round(time.time())
+        cv2.imwrite(os.path.join("app", "images", f"{ts}_no_detecion.jpg"), img_np)
         return RecognitionOutput(
             results=[
                 Plate(
@@ -72,6 +83,9 @@ def recognize(images: bytes = File()) -> RecognitionOutput:
     total_prob = result['detection']['prob'] * result['recognition']['prob']
     total_time = float(result['detection']['speed']['total']) + float(result['recognition']['speed']['total'])
 
+    logger.info(f"detected: {plate_num} - prob: {total_prob} - took: {total_time}")
+    ts = round(time.time())
+    cv2.imwrite(os.path.join("app", "images", f"{ts}_{plate_num}.jpg"), img_np)
 
     return RecognitionOutput(
         results=[

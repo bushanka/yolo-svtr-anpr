@@ -2,6 +2,9 @@
 /test
 /tmp.jpg
 app/examples/*
+app/images/*
+
+!app/images/.gitkeep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
