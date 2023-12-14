@@ -39,7 +39,7 @@ def recognize(images: bytes = File()) -> RecognitionOutput:
                 Plate(
                     plate="no detection, error in decoding image (maybe empty image sended)"
                 )
-            ]
+            ],
             confidence=-1,
             predict_time=0.0
         )
@@ -53,7 +53,7 @@ def recognize(images: bytes = File()) -> RecognitionOutput:
                 Plate(
                     plate=f"no detection, error in model inference (maybe image shape is 0) recieved image len: {len(nparr)}"
                 )
-            ]
+            ],
             confidence=-1,
             predict_time=0.0
         )
@@ -64,7 +64,7 @@ def recognize(images: bytes = File()) -> RecognitionOutput:
                 Plate(
                     plate=f"no detection"
                 )
-            ]
+            ],
             confidence=-1,
             predict_time=result['detection']['speed']['total']
         )
@@ -78,7 +78,7 @@ def recognize(images: bytes = File()) -> RecognitionOutput:
             Plate(
                 plate=plate_num
             )
-        ]
+        ],
         confidence=total_prob,
         predict_time=total_time
     )
