@@ -1,6 +1,7 @@
 /old
 /test
 /tmp.jpg
+app/examples/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
