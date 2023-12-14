@@ -5,6 +5,7 @@ app/examples/*
 app/images/*
 
 !app/images/.gitkeep
+!app/images/1702580112_O179AC977.jpg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

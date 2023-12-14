@@ -4,7 +4,7 @@ services:
 
   python_fastapi:
     container_name: tyzzo-api 
-    image: anpr:v1.1.5
+    image: anpr:v1.1.6
     restart: always
     command:
       [
@@ -14,3 +14,5 @@ services:
       RUNTYPE: "cpu"
     ports:
       - 8000:8000
+    volumes:
+      - /home/ubuntu/parkcloud/src/anpr/app/images:/code/app/images
