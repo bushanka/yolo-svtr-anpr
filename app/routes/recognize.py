@@ -22,6 +22,8 @@ router = APIRouter(
     tags=["recognition"],
 )
 RUNTYPE = os.getenv('RUNTYPE') if os.getenv('RUNTYPE') else 'cpu'
+SAVE_DETECT = int(os.getenv('SAVE_DETECT')) if os.getenv('SAVE_DETECT') else 1
+SAVE_NODETECT = int(os.getenv('SAVE_NODETECT')) if os.getenv('SAVE_NODETECT') else 0
 model = anpr.Anpr(RUNTYPE)
 
 
@@ -68,8 +70,9 @@ def recognize(images: bytes = File()) -> RecognitionOutput:
 
     if not result['recognition']:
         logger.info("no detection")
-        ts = round(time.time())
-        cv2.imwrite(os.path.join("app", "images", f"{ts}_no_detecion.jpg"), img_np)
+        if SAVE_NODETECT == 1:
+            ts = round(time.time())
+            cv2.imwrite(os.path.join("app", "images", f"{ts}_no_detecion.jpg"), img_np)
         return RecognitionOutput(
             results=[
                 Plate(
@@ -84,8 +87,10 @@ def recognize(images: bytes = File()) -> RecognitionOutput:
     total_time = float(result['detection']['speed']['total']) + float(result['recognition']['speed']['total'])
 
     logger.info(f"detected: {plate_num} - prob: {total_prob} - took: {total_time}")
-    ts = round(time.time())
-    cv2.imwrite(os.path.join("app", "images", f"{ts}_{plate_num}.jpg"), img_np)
+
+    if SAVE_DETECT == 1:
+        ts = round(time.time())
+        cv2.imwrite(os.path.join("app", "images", f"{ts}_{plate_num}.jpg"), img_np)
 
     return RecognitionOutput(
         results=[

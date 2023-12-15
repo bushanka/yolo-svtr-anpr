@@ -12,6 +12,8 @@ services:
       ]
     environment:
       RUNTYPE: "cpu"
+      SAVE_DETECT: 1
+      SAVE_NODETECT: 0
     ports:
       - 8000:8000
     volumes:
