@@ -5,7 +5,6 @@ from app.routes import (
     recognize
 )
 
-
 app = FastAPI()
 
 origins = ["*"]

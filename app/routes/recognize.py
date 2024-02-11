@@ -1,6 +1,6 @@
 import time
-from fastapi import(
-    APIRouter, 
+from fastapi import (
+    APIRouter,
     status,
     File
 )
@@ -11,7 +11,6 @@ import logging
 import sys
 from app import anpr
 from app.models.recognize import RecognitionOutput, Plate
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -25,7 +24,6 @@ RUNTYPE = os.getenv('RUNTYPE') if os.getenv('RUNTYPE') else 'cpu'
 SAVE_DETECT = int(os.getenv('SAVE_DETECT')) if os.getenv('SAVE_DETECT') else 1
 SAVE_NODETECT = int(os.getenv('SAVE_NODETECT')) if os.getenv('SAVE_NODETECT') else 0
 model = anpr.Anpr(RUNTYPE)
-
 
 
 @router.post(

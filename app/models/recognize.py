@@ -2,10 +2,8 @@ from pydantic import BaseModel
 from typing import List
 
 
-
 class Plate(BaseModel):
     plate: str
-
 
 
 class RecognitionOutput(BaseModel):

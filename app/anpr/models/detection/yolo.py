@@ -5,7 +5,7 @@ import time
 import os
 
 
-class Yolo():
+class Yolo:
     def __init__(self, device) -> None:
         # Тут можно параметры сессии добавить
         # opt_session = onnxruntime.SessionOptions()
@@ -37,7 +37,6 @@ class Yolo():
         model_output = self.ort_session.get_outputs()
         self.output_names = [model_output[i].name for i in range(len(model_output))]
 
-    
     def rescale_prediction(self, xyxy, dwdh, ratio):
         """Rescale prediction back to original image size.
 
@@ -53,9 +52,9 @@ class Yolo():
         xyxy = np.array(xyxy).round().astype(np.int32)
 
         return xyxy
-    
 
-    def _letterbox(self, image, new_shape=(640, 640), color=(114, 114, 114), auto=False, scaleup=False, stride=32) -> np.ndarray:
+    def _letterbox(self, image, new_shape=(640, 640), color=(114, 114, 114), auto=False, scaleup=False,
+                   stride=32) -> np.ndarray:
         """Resize image by applying letterbox.
 
         Args:
@@ -88,7 +87,7 @@ class Yolo():
         im = image
         if shape[::-1] != new_unpad:  # resize
             im = cv2.resize(image, new_unpad, interpolation=cv2.INTER_LINEAR)
-        
+
         # print(im.shape)
         top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
         left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
@@ -97,7 +96,6 @@ class Yolo():
                                          value=color)  # add border
 
         return resized_img, np.array((dw, dh), dtype='float64'), r
-    
 
     def _prepocess(self, image):
         img, dwdh, ratio = self._letterbox(image)
@@ -109,7 +107,6 @@ class Yolo():
 
         return img, dwdh, ratio
 
-
     def _postprocess(self, outputs):
         predictions = np.squeeze(outputs).T
 
@@ -117,7 +114,7 @@ class Yolo():
         scores = np.max(predictions[:, 4:], axis=1)
 
         predictions = predictions[scores > self.conf_thresold, :]
-        scores = scores[scores > self.conf_thresold] 
+        scores = scores[scores > self.conf_thresold]
 
         try:
             # Get max probability element
@@ -131,17 +128,16 @@ class Yolo():
 
         # rescale box
         input_shape = np.array([
-            self.input_width, self.input_height, 
+            self.input_width, self.input_height,
             self.input_width, self.input_height
         ])
         boxes = np.divide(boxes, input_shape, dtype=np.float32)
         boxes *= np.array([
-            self.resized_height, self.resized_width, 
+            self.resized_height, self.resized_width,
             self.resized_height, self.resized_width
         ])
 
         return boxes[max_index_score], scores[max_index_score]
-    
 
     def _xywh2xyxy(self, x):
         # Convert bounding box (x, y, w, h) to bounding box (x1, y1, x2, y2)
@@ -152,10 +148,9 @@ class Yolo():
         y[..., 3] = x[..., 1] + x[..., 3] / 2
         return y
 
-
     def detect(self, image):
         start_preprocess = time.time()
-        input_tensor, dwdh, ratio  = self._prepocess(image)
+        input_tensor, dwdh, ratio = self._prepocess(image)
         took_preprocess = (time.time() - start_preprocess)
 
         start_detecting = time.time()
@@ -164,7 +159,7 @@ class Yolo():
 
         start_postprocess = time.time()
         result_box, result_score = self._postprocess(outputs)
-        took_postprocess  = (time.time() - start_postprocess)
+        took_postprocess = (time.time() - start_postprocess)
 
         return {
             'box': self.rescale_prediction(self._xywh2xyxy(result_box[0]), dwdh, ratio) if result_score else None,
@@ -181,7 +176,6 @@ class Yolo():
 if __name__ == '__main__':
     import pprint
 
-
     y = Yolo(device='gpu')
     image = cv2.imread('/home/ubuntu/proj/T427PA163.jpg')
     result = y.detect(image)
@@ -192,7 +186,7 @@ if __name__ == '__main__':
         result = y.detect(image)
         count += 1
         total += float(result['speed']['total'])
-    
+
     print(f'average speed, 1000 runs: {total / count} ms')
     box = result['box']
-    cv2.imwrite('tmp.jpg', image[box[1]:box[3],box[0]:box[2]])
+    cv2.imwrite('tmp.jpg', image[box[1]:box[3], box[0]:box[2]])
