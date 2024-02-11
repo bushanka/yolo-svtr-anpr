@@ -37,7 +37,7 @@ docker-compose -f docker-compose.yaml up -d
 3. Upload image and get the result
 
 ## Endpoints
-- /recognize_plate: POST endpoint to upload an image of a vehicle with a number plate. Returns the recognized number plate information.
+- /recognition/recognize: POST endpoint to upload an image of a vehicle with a number plate. Returns the recognized number plate information.
 
 ## License
 This project is licensed under the MIT License
