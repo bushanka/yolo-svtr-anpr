@@ -1,6 +1,8 @@
-onnxruntime==1.15.1
-onnxruntime-gpu==1.15.1
-opencv-python-headless==4.8.0.74
+onnxruntime~=1.17.0
+opencv-python
+fastapi
+onnxruntime-gpu
+opencv-python-headless
 fastapi
 uvicorn
 gunicorn
