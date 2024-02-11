@@ -106,15 +106,15 @@ class Ocr():
     def recognize(self, image):
         start_preprocess = time.time()
         input_tensor, image_height, image_width  = self._prepocess(image)
-        took_preprocess = (time.time() - start_preprocess) * 1000
+        took_preprocess = (time.time() - start_preprocess)
 
         start_detecting = time.time()
         outputs = self.ort_session.run(self.output_names, {self.input_names[0]: input_tensor})[0]
-        took_recognizing = (time.time() - start_detecting) * 1000
+        took_recognizing = (time.time() - start_detecting)
 
         start_postprocess = time.time()
         result = self._postprocess(outputs, image_height, image_width)
-        took_postprocess  = (time.time() - start_postprocess) * 1000
+        took_postprocess  = (time.time() - start_postprocess)
 
         result['speed'] = {
                 'preprocess': f'{took_preprocess:.3f}',

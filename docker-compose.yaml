@@ -1,34 +1,20 @@
-version: "3"
+version: "3.9"
 
 services:
 
   python_fastapi:
-    image: anpr-api
+    container_name: tyzzo-api 
+    image: anpr:v1.1.6
+    restart: always
     command:
       [
-          "gunicorn", "-w", "2", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8000"
+          "gunicorn", "-w", "6", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8000", "--log-level=debug"
       ]
     environment:
-      APP_BROKER_URI: "amqp://rabbitmq"
-      MAX_TRIES: "20"
-      DELAY: "0.1"
+      RUNTYPE: "cpu"
+      SAVE_DETECT: 1
+      SAVE_NODETECT: 0
     ports:
       - 8000:8000
-
-  celery_worker:
-    image: anpr-api
-    command:
-      [
-          "celery", "-A", "app.tasks.recognition_task", "worker", "-Q", "recognitiontask_queue",
-          "--loglevel=DEBUG", "--hostname=anpr", "--autoscale=2,1"
-      ]
-    environment:
-      APP_BROKER_URI: "amqp://rabbitmq"
-      RUNTYPE: "cpu"
-    depends_on:
-      - rabbitmq
-    
-  rabbitmq:
-    image: rabbitmq:3.12.4
-    ports:
-      - 5672:5672
+    volumes:
+      - /home/ubuntu/parkcloud/src/anpr/app/images:/code/app/images

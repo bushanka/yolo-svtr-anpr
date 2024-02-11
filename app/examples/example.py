@@ -1,27 +1,22 @@
-import requests
-import pprint
-import cv2
-import json
-
-# resp = requests.get('158.0.0.1:8000/ping')
-# image = cv2.imread('/home/bush/project/anpr/test/T008AT197.jpg')
-# image_bytes = cv2.imencode('.jpg', image)[1].tostring()
-
-file = {
-    "image": open('/home/bush/project/anpr/test/T008AT197.jpg', 'rb')
-}
-resp = requests.post('http://158.160.100.102:8080/recognize', files=file)
-print(resp)
+import anpr
 
 
+if __name__ == '__main__':
+    import pprint
+    import cv2
 
 
-# import cv2
+    it = anpr.Anpr('cpu') # also 'cpu' and 'trt' is available (trt not tested)
 
-# cam = cv2.VideoCapture(0)
+    # warmup
+    image = cv2.imread('/home/bush/project/anpr/photo_2023-10-16_13-37-16.jpg')
+    pprint.pprint(it(image))
 
-# # get image from web camera
-# ret, frame = cam.read()
+    # count = 0
+    # total = 0
+    # for i in range(10):
+    #     result = it(image)
+    #     count += 1
+    #     total += float(result['detection']['speed']['total']) + float(result['recognition']['speed']['total'])
 
-# # convert to jpeg and save in variable
-# image_bytes = cv2.imencode('.jpg', frame)[1].tobytes()
+    # print(f'average speed, 1000 runs: {total / count} ms')

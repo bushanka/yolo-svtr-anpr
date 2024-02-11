@@ -156,15 +156,15 @@ class Yolo():
     def detect(self, image):
         start_preprocess = time.time()
         input_tensor, dwdh, ratio  = self._prepocess(image)
-        took_preprocess = (time.time() - start_preprocess) * 1000
+        took_preprocess = (time.time() - start_preprocess)
 
         start_detecting = time.time()
         outputs = self.ort_session.run(self.output_names, {self.input_names[0]: input_tensor})[0]
-        took_detecting = (time.time() - start_detecting) * 1000
+        took_detecting = (time.time() - start_detecting)
 
         start_postprocess = time.time()
         result_box, result_score = self._postprocess(outputs)
-        took_postprocess  = (time.time() - start_postprocess) * 1000
+        took_postprocess  = (time.time() - start_postprocess)
 
         return {
             'box': self.rescale_prediction(self._xywh2xyxy(result_box[0]), dwdh, ratio) if result_score else None,

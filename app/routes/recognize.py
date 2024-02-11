@@ -1,104 +1,103 @@
+import time
 from fastapi import(
     APIRouter, 
     status,
     File
 )
-
-from celery.result import AsyncResult
-from celery import Celery
-
-from app.models.recognize import RecognitionOutput, RecognitionTask
-
-from pydantic import BaseModel
-from typing import Union, Tuple
-from dotenv import load_dotenv
+import numpy as np
 import os
-import asyncio
+import cv2
+import logging
+import sys
+from app import anpr
+from app.models.recognize import RecognitionOutput, Plate
 
 
-load_dotenv()
-MAX_TRIES = int(os.getenv('MAX_TRIES'))
-DELAY = float(os.getenv('DELAY'))
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler(sys.stdout))
 
 router = APIRouter(
     prefix="/recognition",
     tags=["recognition"],
 )
-celery_app = Celery('app.tasks.recognition_task', backend='rpc://', broker=os.getenv('APP_BROKER_URI'))
+RUNTYPE = os.getenv('RUNTYPE') if os.getenv('RUNTYPE') else 'cpu'
+SAVE_DETECT = int(os.getenv('SAVE_DETECT')) if os.getenv('SAVE_DETECT') else 1
+SAVE_NODETECT = int(os.getenv('SAVE_NODETECT')) if os.getenv('SAVE_NODETECT') else 0
+model = anpr.Anpr(RUNTYPE)
 
-
-
-async def celery_async_wrapper(
-        app: Celery, 
-        task_name: str, 
-        task_args: Tuple, 
-        queue: str
-) -> Union[RecognitionOutput, int]:
-    delay = DELAY
-    max_tries = MAX_TRIES
-
-    task_id = app.send_task(task_name, [*task_args], queue=queue)
-    task = AsyncResult(task_id)
-
-    while not task.ready() and max_tries > 0:
-        await asyncio.sleep(delay)
-        # Через 5 итераций выходит на 2 секунды
-        # Total wait: 3.1 sec после 5 итераций, далее по 2 сек делей
-        # Максимум будет 33 секунды - потом Time out 
-        delay = min(delay * 2, 2)  # exponential backoff, max 2 seconds
-        max_tries -= 1
-
-    if max_tries <= 0:
-        return task_id
-
-    result = task.get()
-
-    return RecognitionOutput(
-        plate=result['plate'],
-        predict_time=result['predict_time'],
-        confidence=result['confidence']
-    )
 
 
 @router.post(
     '/recognize',
     responses={
         status.HTTP_200_OK: {
-            "description": "Returns recognition result or task id if time out"
+            "description": "Returns recognition result."
         },
     }
 )
-async def recognize(image_bytes: bytes = File()) -> Union[RecognitionOutput, RecognitionTask]:
-    result = await celery_async_wrapper(
-        celery_app, 
-        'recognize', 
-        task_args=(image_bytes,), 
-        queue='recognitiontask_queue'
-    )
-    if isinstance(result, RecognitionOutput):
-        return result
-    else:
-        return RecognitionTask(task_id=str(result))
+def recognize(images: bytes = File()) -> RecognitionOutput:
+    nparr = np.fromstring(images, np.uint8)
+    try:
+        img_np = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    except cv2.error as ex_cv2:
+        logger.info(f"Error in decoding image: {ex_cv2}")
+        return RecognitionOutput(
+            status='error',
+            results=[
+                Plate(
+                    plate="no detection, error in decoding image (maybe empty image sended)"
+                )
+            ],
+            confidence=-1,
+            predict_time=0.0
+        )
 
+    try:
+        result = model(img_np)
+    except AttributeError as ex_attrerror:
+        logger.info(ex_attrerror)
+        return RecognitionOutput(
+            status='error',
+            results=[
+                Plate(
+                    plate=f"no detection, error in model inference (maybe image shape is 0) recieved image len: {len(nparr)}"
+                )
+            ],
+            confidence=-1,
+            predict_time=0.0
+        )
 
-@router.get(
-        '/result/{task_id}',
-        responses={
-            status.HTTP_200_OK: {
-                "description": "Returns status of recognition task"
-            }
-        }
-)
-async def fetch_result(task_id: int) -> Union[RecognitionTask, RecognitionOutput]:
-    task = AsyncResult(task_id)
+    if not result['recognition']:
+        logger.info("no detection")
+        if SAVE_NODETECT == 1:
+            ts = round(time.time())
+            cv2.imwrite(os.path.join("app", "images", f"{ts}_no_detecion.jpg"), img_np)
+        return RecognitionOutput(
+            results=[
+                Plate(
+                    plate=f"no detection"
+                )
+            ],
+            confidence=-1,
+            predict_time=result['detection']['speed']['total']
+        )
+    plate_num = result['recognition']['text']
+    total_prob = result['detection']['prob'] * result['recognition']['prob']
+    total_time = float(result['detection']['speed']['total']) + float(result['recognition']['speed']['total'])
 
-    if not task.ready():
-        return RecognitionTask(task_id=str(task_id))
-    
-    result = task.get()
+    logger.info(f"detected: {plate_num} - prob: {total_prob} - took: {total_time}")
+
+    if SAVE_DETECT == 1:
+        ts = round(time.time())
+        cv2.imwrite(os.path.join("app", "images", f"{ts}_{plate_num}.jpg"), img_np)
 
     return RecognitionOutput(
-        plate=result['plate'],
-        predict_time=result['predict_time'],
-        confidence=result['confidence']
+        results=[
+            Plate(
+                plate=plate_num
+            )
+        ],
+        confidence=total_prob,
+        predict_time=total_time
     )

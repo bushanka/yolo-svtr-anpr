@@ -1,14 +1,15 @@
 from pydantic import BaseModel
+from typing import List
 
 
 
-class RecognitionTask(BaseModel):
-    task_id: str
-    status: str = 'pending'
+class Plate(BaseModel):
+    plate: str
+
 
 
 class RecognitionOutput(BaseModel):
     status: str = 'success'
-    plate: str
+    results: List[Plate]
     predict_time: float
     confidence: float
