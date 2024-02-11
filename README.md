@@ -40,9 +40,9 @@ docker-compose -f docker-compose.yaml up -d
 - /recognize_plate: POST endpoint to upload an image of a vehicle with a number plate. Returns the recognized number plate information.
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License
 
 ## Acknowledgements
-- YOLO: You Only Look Once - [Link to YOLO](https://pjreddie.com/darknet/yolo/)
+- YOLO: You Only Look Once
 
 Feel free to contribute or report issues in this project!
