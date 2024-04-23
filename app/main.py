@@ -1,9 +1,8 @@
-from fastapi import FastAPI, Depends
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
-from app.routes import (
-    recognize
-)
+
+from app.routes import recognize
 
 app = FastAPI()
 

@@ -1,8 +1,9 @@
-import onnxruntime
-import numpy as np
-import cv2
-import time
 import os
+import time
+
+import cv2
+import numpy as np
+import onnxruntime
 
 
 class Yolo:
@@ -15,15 +16,19 @@ class Yolo:
         self.conf_thresold = 0.6
 
         module_dir = os.path.dirname(__file__)
-        model_path = os.path.join(module_dir, 'weights', 'yolo_half_sim.onnx')
+        model_path = os.path.join(module_dir, "weights", "yolo_half_sim.onnx")
 
         # EP_list = ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
-        if device == 'gpu':
-            EP_list = ['CUDAExecutionProvider', 'CPUExecutionProvider']
-        elif device == 'cpu':
-            EP_list = ['CPUExecutionProvider']
-        elif device == 'trt':
-            EP_list = ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
+        if device == "gpu":
+            EP_list = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        elif device == "cpu":
+            EP_list = ["CPUExecutionProvider"]
+        elif device == "trt":
+            EP_list = [
+                "TensorrtExecutionProvider",
+                "CUDAExecutionProvider",
+                "CPUExecutionProvider",
+            ]
 
         self.ort_session = onnxruntime.InferenceSession(model_path, providers=EP_list)
 
@@ -46,15 +51,22 @@ class Yolo:
         Returns:
             Rescaled image predictions
         """
-        xyxy = np.array(xyxy, 'float64')
+        xyxy = np.array(xyxy, "float64")
         xyxy -= np.tile(dwdh, 2)
         xyxy /= ratio
         xyxy = np.array(xyxy).round().astype(np.int32)
 
         return xyxy
 
-    def _letterbox(self, image, new_shape=(640, 640), color=(114, 114, 114), auto=False, scaleup=False,
-                   stride=32) -> np.ndarray:
+    def _letterbox(
+        self,
+        image,
+        new_shape=(640, 640),
+        color=(114, 114, 114),
+        auto=False,
+        scaleup=False,
+        stride=32,
+    ) -> np.ndarray:
         """Resize image by applying letterbox.
 
         Args:
@@ -92,10 +104,11 @@ class Yolo:
         top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
         left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
 
-        resized_img = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT,
-                                         value=color)  # add border
+        resized_img = cv2.copyMakeBorder(
+            im, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color
+        )  # add border
 
-        return resized_img, np.array((dw, dh), dtype='float64'), r
+        return resized_img, np.array((dw, dh), dtype="float64"), r
 
     def _prepocess(self, image):
         img, dwdh, ratio = self._letterbox(image)
@@ -127,15 +140,18 @@ class Yolo:
         boxes = predictions[:, :4]
 
         # rescale box
-        input_shape = np.array([
-            self.input_width, self.input_height,
-            self.input_width, self.input_height
-        ])
+        input_shape = np.array(
+            [self.input_width, self.input_height, self.input_width, self.input_height]
+        )
         boxes = np.divide(boxes, input_shape, dtype=np.float32)
-        boxes *= np.array([
-            self.resized_height, self.resized_width,
-            self.resized_height, self.resized_width
-        ])
+        boxes *= np.array(
+            [
+                self.resized_height,
+                self.resized_width,
+                self.resized_height,
+                self.resized_width,
+            ]
+        )
 
         return boxes[max_index_score], scores[max_index_score]
 
@@ -151,33 +167,39 @@ class Yolo:
     def detect(self, image):
         start_preprocess = time.time()
         input_tensor, dwdh, ratio = self._prepocess(image)
-        took_preprocess = (time.time() - start_preprocess)
+        took_preprocess = time.time() - start_preprocess
 
         start_detecting = time.time()
-        outputs = self.ort_session.run(self.output_names, {self.input_names[0]: input_tensor})[0]
-        took_detecting = (time.time() - start_detecting)
+        outputs = self.ort_session.run(
+            self.output_names, {self.input_names[0]: input_tensor}
+        )[0]
+        took_detecting = time.time() - start_detecting
 
         start_postprocess = time.time()
         result_box, result_score = self._postprocess(outputs)
-        took_postprocess = (time.time() - start_postprocess)
+        took_postprocess = time.time() - start_postprocess
 
         return {
-            'box': self.rescale_prediction(self._xywh2xyxy(result_box[0]), dwdh, ratio) if result_score else None,
-            'prob': result_score[0] if result_score else 0,
-            'speed': {
-                'preprocess': f'{took_preprocess:.3f}',
-                'detecting': f'{took_detecting:.3f}',
-                'postprocess': f'{took_postprocess:.3f}',
-                'total': f'{(took_preprocess + took_detecting + took_postprocess):.3f}'
-            }
+            "box": (
+                self.rescale_prediction(self._xywh2xyxy(result_box[0]), dwdh, ratio)
+                if result_score
+                else None
+            ),
+            "prob": result_score[0] if result_score else 0,
+            "speed": {
+                "preprocess": f"{took_preprocess:.3f}",
+                "detecting": f"{took_detecting:.3f}",
+                "postprocess": f"{took_postprocess:.3f}",
+                "total": f"{(took_preprocess + took_detecting + took_postprocess):.3f}",
+            },
         }
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import pprint
 
-    y = Yolo(device='gpu')
-    image = cv2.imread('/home/ubuntu/proj/T427PA163.jpg')
+    y = Yolo(device="gpu")
+    image = cv2.imread("/home/ubuntu/proj/T427PA163.jpg")
     result = y.detect(image)
     pprint.pprint(result)
     count = 0
@@ -185,8 +207,8 @@ if __name__ == '__main__':
     for i in range(1000):
         result = y.detect(image)
         count += 1
-        total += float(result['speed']['total'])
+        total += float(result["speed"]["total"])
 
-    print(f'average speed, 1000 runs: {total / count} ms')
-    box = result['box']
-    cv2.imwrite('tmp.jpg', image[box[1]:box[3], box[0]:box[2]])
+    print(f"average speed, 1000 runs: {total / count} ms")
+    box = result["box"]
+    cv2.imwrite("tmp.jpg", image[box[1] : box[3], box[0] : box[2]])

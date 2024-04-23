@@ -1,5 +1,6 @@
-from pydantic import BaseModel
 from typing import List
+
+from pydantic import BaseModel
 
 
 class Plate(BaseModel):
@@ -7,7 +8,7 @@ class Plate(BaseModel):
 
 
 class RecognitionOutput(BaseModel):
-    status: str = 'success'
+    status: str = "success"
     results: List[Plate]
     predict_time: float
     confidence: float
